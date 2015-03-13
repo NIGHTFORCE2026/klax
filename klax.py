@@ -1,7 +1,7 @@
 # [x] initial application
 # [x] added dynamic route
-# [ ] integrated templates
-# [ ] integrated templates 2
+# [x] integrated templates
+# [x] integrated an extension: flask-script 
 # [ ] bootstrap-template integration: user.html
 # [ ] template: generalized an app template for inheritance
 # [ ] templates: error pages
@@ -13,7 +13,11 @@
 
 
 from flask import Flask, render_template
+from flask.ext.script import Manager
+
+# pass extension class the app instance
 app = Flask(__name__)
+manager = Manager(app)
 
 @app.route('/')
 def index():
@@ -24,6 +28,7 @@ def user(name):
     return render_template('user.html', name = name)
 
 
+# manager intercepts the app's run method
 if __name__ == '__main__':
-    app.run(debug = True)
+    manager.run()
 
