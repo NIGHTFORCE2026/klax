@@ -13,23 +13,20 @@
 #       form classes
 #       html rendering of forms
 #       form handling in view functions
-# [ ] redirects and user sessions (4b)
+# [x] redirects and user sessions (4b)
 # [ ] message flashing (4c)
 
 
-# import datetime library to generate timestamp; import Flask-Moment
-from flask import Flask, render_template, url_for
+# import session request object, redirect
+from flask import Flask, render_template, url_for, session, redirect
 from datetime import datetime
 from flask.ext.script import Manager
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.moment import Moment
-
-# import Form, fields, validators
 from flask.ext.wtf import Form
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required 
 
-# configure an encryption key
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'shesanuptownmodel'
 
@@ -38,9 +35,7 @@ manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 
-# form classes: create the form
 class NameForm(Form):
-    # fields are wtforms objects, p1 label; p2 k=v list of validators
     name = StringField('What is your name?', validators = [Required()])
     submit = SubmitField('Submit')
 
@@ -53,15 +48,15 @@ def request_not_found(e):
 def internal_server_error(e):
     return render_template('500.html'), 500
 
-# get value of name from form, pass the form to template
 @app.route('/', methods = ['GET', 'POST'])
 def index():
     name = None
     a_form = NameForm()
     if a_form.validate_on_submit():
-        name = a_form.name.data
-        a_form.name.data = ''
-    return render_template('index.html', form = a_form, name = name)
+        # store input in user session, redirect
+        session['name']= a_form.name.data
+        return redirect(url_for('index'))
+    return render_template('index.html', form = a_form, name = session.get('name'))
 
 
 if __name__ == '__main__':
