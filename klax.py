@@ -14,10 +14,11 @@
 
 from flask import Flask, render_template
 from flask.ext.script import Manager
+from flask.ext.bootstrap import Bootstrap
 
-# pass extension class the app instance
 app = Flask(__name__)
 manager = Manager(app)
+bootstrap = Bootstrap(app)
 
 @app.route('/')
 def index():
@@ -28,7 +29,6 @@ def user(name):
     return render_template('user.html', name = name)
 
 
-# manager intercepts the app's run method
 if __name__ == '__main__':
     manager.run()
 
