@@ -17,8 +17,7 @@
 # [ ] message flashing (4c)
 
 
-# import session request object, redirect
-from flask import Flask, render_template, url_for, session, redirect
+from flask import Flask, render_template, url_for, session, redirect, flash
 from datetime import datetime
 from flask.ext.script import Manager
 from flask.ext.bootstrap import Bootstrap
@@ -50,10 +49,12 @@ def internal_server_error(e):
 
 @app.route('/', methods = ['GET', 'POST'])
 def index():
-    name = None
     a_form = NameForm()
+    # flash a message if name in session different from name in input
     if a_form.validate_on_submit():
-        # store input in user session, redirect
+        prior_name = session.get('name')
+        if prior_name is not None and prior_name != a_form.name.data:
+            flash('Looks like you have changed your name!')
         session['name']= a_form.name.data
         return redirect(url_for('index'))
     return render_template('index.html', form = a_form, name = session.get('name'))
