@@ -2,7 +2,7 @@
 # [x] added dynamic route
 # [x] integrated templates
 # [x] integrated an extension: flask-script 
-# [ ] bootstrap-template integration: user.html
+# [x] bootstrap-template integration: user.html
 # [ ] template: generalized an app template for inheritance
 # [ ] templates: error pages
 # [ ] dynamic URLs, static files
