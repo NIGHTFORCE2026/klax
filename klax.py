@@ -17,11 +17,12 @@
 # [x] message flashing (4c)
 # [x] Database models with Flask-SQLAlchemy (5a)
 # [x] Database use in the application (5b)
+# [x] Shell context (5c)
 
 import os
 from flask import Flask, render_template, url_for, session, redirect, flash
 from datetime import datetime
-from flask.ext.script import Manager
+from flask.ext.script import Manager, Shell
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.moment import Moment
 from flask.ext.wtf import Form
@@ -65,6 +66,11 @@ class NameForm(Form):
     name = StringField('What is your name?', validators = [Required()])
     submit = SubmitField('Submit')
 
+# define an import list in a make_shell_context
+def make_shell_context():
+    return dict(app=app, db=db, Role=Role, User=User)
+# pass the make_shell_context to manager.add_command()
+manager.add_command('shell', Shell(make_context=make_shell_context))
 
 @app.errorhandler(404)
 def request_not_found(e):
@@ -77,15 +83,11 @@ def internal_server_error(e):
 @app.route('/', methods = ['GET', 'POST'])
 def index():
     a_form = NameForm()
-    # field has data, data is validated, form submitted
     if a_form.validate_on_submit():
-        # check User table for username matching form input 
         user = User.query.filter_by(username=a_form.name.data).first()
         if user is None:
-            # write form input to a table row
             user = User(username=a_form.name.data)
             db.session.add(user)
-            # set a session variable to use in a cusomized template message
             session['known'] = False
         else:
             session['known'] = True
