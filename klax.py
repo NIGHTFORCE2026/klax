@@ -18,6 +18,7 @@
 # [x] Database models with Flask-SQLAlchemy (5a)
 # [x] Database use in the application (5b)
 # [x] Shell context (5c)
+# [x] Database migrations with Flask-Migrate (5d)
 
 import os
 from flask import Flask, render_template, url_for, session, redirect, flash
@@ -29,6 +30,7 @@ from flask.ext.wtf import Form
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required 
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.migrate import Migrate, MigrateCommand
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -42,6 +44,7 @@ manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -61,16 +64,15 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
-
 class NameForm(Form):
     name = StringField('What is your name?', validators = [Required()])
     submit = SubmitField('Submit')
 
-# define an import list in a make_shell_context
 def make_shell_context():
     return dict(app=app, db=db, Role=Role, User=User)
-# pass the make_shell_context to manager.add_command()
 manager.add_command('shell', Shell(make_context=make_shell_context))
+manager.add_command('db', MigrateCommand)
+
 
 @app.errorhandler(404)
 def request_not_found(e):
