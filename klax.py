@@ -19,9 +19,13 @@
 # [x] Database use in the application (5b)
 # [x] Shell context (5c)
 # [x] Database migrations with Flask-Migrate (5d)
-# [ ] Email support with Flask-Mail (6a)
+# [x] Email support with Flask-Mail (6a)
+# [x] Asynchronous emails (6b)
 
+
+# import threading library
 import os
+from threading import Thread
 from flask import Flask, render_template, url_for, session, redirect, flash
 from datetime import datetime
 from flask.ext.script import Manager, Shell
@@ -32,8 +36,6 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import Required 
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.migrate import Migrate, MigrateCommand
-
-# import mail server integration and Message class
 from flask.ext.mail import Mail, Message
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -43,21 +45,15 @@ app.config['SECRET_KEY'] = 'shesanuptownmodel'
 app.config['SQLALCHEMY_DATABASE_URI'] =\
         'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
-
-# configure flask-mail server settings 
 app.config['MAIL_SERVER'] = 'smtp.googlemail.com' 
 app.config['MAIL_PORT'] = 587 
 app.config['MAIL_USE_TLS'] = True
-# set values in environment variables using export
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-# configure flask-mail message settings
 app.config['KLAX_MAIL_SUBJECT_PREFIX'] = '[KLAX]'
 app.config['KLAX_MAIL_SENDER'] = 'KLAX Admin <klax@example.com>'
 app.config['KLAX_ADMIN'] = os.environ.get('KLAX_ADMIN')
 
-
-# initiate the mail server
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
@@ -83,18 +79,21 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
-# make a function to send email
+# create an application context for mail.send()
+def send_async_email(app, msg):
+    with app.app_context():
+        mail.send(msg)
+
+# embed threaded mail.send() in a thread
 def send_email(to, subject, template, **kwargs):
-    # define the message heading
     msg = Message(app.config['KLAX_MAIL_SUBJECT_PREFIX'] + ' ' + subject, 
             sender=app.config['KLAX_MAIL_SENDER'], recipients=[to])
-    # define a message for text
     msg.body = render_template(template + '.txt', **kwargs)
-    # define a message for html
     msg.html = render_template(template + '.html', **kwargs)
-    # send the message with the mail server
-    mail.send(msg)
-
+    # create the thread
+    thr = Thread(target=send_async_email, args=[app, msg])
+    thr.start()
+    return thr
 
 class NameForm(Form):
     name = StringField('What is your name?', validators = [Required()])
@@ -105,7 +104,6 @@ def make_shell_context():
 manager.add_command('shell', Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
-
 @app.errorhandler(404)
 def request_not_found(e):
     return render_template('404.html'), 404
@@ -115,20 +113,16 @@ def internal_server_error(e):
     return render_template('500.html'), 500
 
 
-# incorporate send_email() 
 @app.route('/', methods = ['GET', 'POST'])
 def index():
     a_form = NameForm()
     if a_form.validate_on_submit():
         user = User.query.filter_by(username=a_form.name.data).first()
-        # if it's a new user not in the db, email admin
         if user is None:
             user = User(username=a_form.name.data)
             db.session.add(user)
             session['known'] = False
-            # check admin's email is set in config setting
             if app.config['KLAX_ADMIN']:
-                # send email to admin 
                 send_email(app.config['KLAX_ADMIN'], 'New User', 
                         'mail/new_user', user=user)
         else:
