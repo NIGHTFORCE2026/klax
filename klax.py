@@ -40,6 +40,7 @@ from flask.ext.mail import Mail, Message
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'shesanuptownmodel'
 app.config['SQLALCHEMY_DATABASE_URI'] =\
@@ -134,4 +135,5 @@ def index():
 
 if __name__ == '__main__':
     manager.run()
+
 
