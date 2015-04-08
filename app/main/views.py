@@ -2,13 +2,18 @@ from flask import render_template, session, redirect, url_for, current_app
 from .. import db
 from ..models import User
 from ..email import send_email
-# register the blueprint
-from . import main
 from .forms import NameForm
 
-# route decorator comes from Blueprint called main
+# register the 'main' package's blueprint
+from . import main
+
+# register routes with 'main' package's blueprint
 @main.route('/', methods = ['GET', 'POST'])
 def index():
+    """ index : HTTP request -> template 
+    Takes user input from a_form, checks if input value exists in db table,
+    writes input value to db table, sends admin an email alert, stores input value 
+    in a session, sends input value to a template. """
     a_form = NameForm()
     if a_form.validate_on_submit():
         user = User.query.filter_by(username=a_form.name.data).first()

@@ -1,4 +1,6 @@
+# ----------------------------------------------------
 # CONFIGURATION OPTIONS FOR THE APP AND ITS EXTENSIONS
+# ----------------------------------------------------
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -15,7 +17,7 @@ class Config:
     KLAX_MAIL_SENDER = 'KLAX Admin <klax@example.com>'
     KLAX_ADMIN = os.environ.get('KLAX_ADMIN')
 
-    # for configuration-specific initialization
+    # configuration-specific initialization method
     @staticmethod
     def init_app(app):
         pass
