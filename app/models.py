@@ -12,14 +12,10 @@ class Role(db.Model):
     def __repr__(self):
         return '<Role %r>' % self.name
 
-# apply flask-login UserMixin to make relevant methods (8-1) available
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-
-    # add an email column for user logins
     email = db.Column(db.String(64), unique=True, index=True)
-
     username = db.Column(db.String(64), unique=True, index=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     password_hash = db.Column(db.String(128))
@@ -38,7 +34,6 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
-# define a callback function for flask-login to app factory 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
