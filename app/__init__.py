@@ -1,17 +1,11 @@
-# ----------------------------------------------------
-# APPLICATION FACTORY CREATES THE APPLICATION INSTANCE
-# ----------------------------------------------------
 from flask import Flask
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.mail import Mail
 from flask.ext.moment import Moment
 from flask.ext.sqlalchemy import SQLAlchemy
-
-# import relevant flask-login class
 from flask.ext.login import LoginManager
 from config import config
 
-# instantiate and configure flask-login LoginManager
 bootstrap = Bootstrap()
 mail = Mail()
 moment = Moment()
@@ -43,11 +37,9 @@ def create_app(config_name):
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
-    # register auth blueprint 
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-    # return the initialized app
     return app
 
 

@@ -1,0 +1,6 @@
+KLAX confirmation email template
+
+Hi {{ user.username }},
+
+Click the confirmation link to confirm your account:
+{{ url_for('auth.confirm', token=token, _external=True) }}

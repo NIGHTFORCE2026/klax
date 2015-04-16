@@ -1,5 +1,7 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin
+from flask import current_app
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, login_manager
 
 
@@ -20,6 +22,11 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     password_hash = db.Column(db.String(128))
 
+    # initialize user confirmation attribute
+    confirmed = db.Column(db.Boolean, default=False)
+
+    # password hashing 
+
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')
@@ -30,6 +37,34 @@ class User(UserMixin, db.Model):
     
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # account confirmation
+
+    # generate a JSON web token
+    def generate_confirmation_token(self, expiration=3600):
+        # generate header and payload
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        # generate / append signature
+        return s.dumps({ 'confirm': self.id })
+
+    # confirm a JSON web token
+    def confirm(self, token):
+        # generate header and payload 
+        s = Serializer(current_app.config['SECRET_KEY'])
+        # decode the signature 
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        # if the id in the signature doesnt match user.id 
+        if data.get('confirm') != self.id:
+            return False
+        # set confirmation attribute
+        self.confirmed = True
+        # add the user to the db
+        db.session.add(self)
+        return True
+
 
     def __repr__(self):
         return '<User %r>' % self.username
