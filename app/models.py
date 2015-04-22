@@ -16,13 +16,12 @@ class Role(db.Model):
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
     username = db.Column(db.String(64), unique=True, index=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     password_hash = db.Column(db.String(128))
-
-    # initialize user confirmation attribute
     confirmed = db.Column(db.Boolean, default=False)
 
     # password hashing 
@@ -40,30 +39,23 @@ class User(UserMixin, db.Model):
 
     # account confirmation
 
-    # generate a JSON web token
     def generate_confirmation_token(self, expiration=3600):
-        # generate header and payload
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
-        # generate / append signature
         return s.dumps({ 'confirm': self.id })
 
-    # confirm a JSON web token
     def confirm(self, token):
-        # generate header and payload 
         s = Serializer(current_app.config['SECRET_KEY'])
-        # decode the signature 
         try:
             data = s.loads(token)
         except:
             return False
-        # if the id in the signature doesnt match user.id 
         if data.get('confirm') != self.id:
             return False
-        # set confirmation attribute
         self.confirmed = True
-        # add the user to the db
         db.session.add(self)
         return True
+
+    # reset password
 
     def generate_reset_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
@@ -78,6 +70,32 @@ class User(UserMixin, db.Model):
         if data.get('reset') != self.id:
             return False
         self.password = new_password
+        db.session.add(self)
+        return True
+
+    # change email address
+
+    def generate_email_change_token(self, new_email, expiration=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({ 'change_email': self.id, 'new_email': new_email})
+
+    def change_email(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        # decode the signature
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        # id of whoever wants to change the email address 
+        if data.get('change_email') != self.id:
+            return False
+        new_email = data.get('new_email')
+        if new_email is None:
+            return False
+        if self.query.filter_by(email=new_email).first() is not None:
+            return False
+        # set the email to new address and write to db
+        self.email = new_email
         db.session.add(self)
         return True
 
