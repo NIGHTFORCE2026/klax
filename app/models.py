@@ -1,16 +1,10 @@
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from flask import current_app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, login_manager
 
-# [x] DB REPRESENTATION OF ROLES
-# [x] ROLE ASSIGNMENT
-# [x] ROLE VERIFICATION
-
-# DB REPRESENTATION OF ROLES
-# 80 40 20 10 8 4 2 1
-#  0  0  0  0 0 0 0 0
 class Permission:
     FOLLOW = 0x01
     COMMENT = 0x02
@@ -22,14 +16,12 @@ class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
-    # store permissions in the db table 
     default = db.Column(db.Boolean, default=False, index=True)
     permissions = db.Column(db.Integer)
     users = db.relationship('User', backref='role', lazy='dynamic')
 
     @staticmethod
     def insert_roles():
-        # define roles as combinations of permissions
         roles = {
                 'User': (Permission.FOLLOW |
                          Permission.COMMENT |
@@ -40,7 +32,6 @@ class Role(db.Model):
                               Permission.MODERATE_COMMENTS, False), 
                 'Administrator': (0xff, False)
         }
-        # insert roles in the db schema 
         for r in roles:
             role = Role.query.filter_by(name=r).first() 
             if role is None:
@@ -62,14 +53,19 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
 
-    # ROLE ASSIGNMENT
+    # fields to store profile information
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    # refresh on user request
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         if self.role is None:
-            # admin
             if self.email == current_app.config['KLAX_ADMIN']:
                 self.role = Role.query.filter_by(permissions=0xff).first()
-            # default
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
 
@@ -137,25 +133,25 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
-    # ROLE VERIFICATION
-    # check if registered user supplied permission against stored permissions
     def can(self, permissions):
         return self.role is not None and \
         (self.role.permissions & permissions) == permissions
 
-    # check if registered user has admin permissions
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
+
+    # refresh user.last_seen with new timestamp
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
     def __repr__(self):
         return '<User %r>' % self.username
 
 class AnonymousUser(AnonymousUserMixin):
-    # check if anon user supplied permission against stored permissions
     def can(self, permissions):
         return False
 
-    # check if anon user has admin permissions
     def is_administrator(self):
         return False
 
