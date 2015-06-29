@@ -1,22 +1,60 @@
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask.ext.login import UserMixin
+from flask.ext.login import UserMixin, AnonymousUserMixin
 from flask import current_app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, login_manager
 
+# [x] DB REPRESENTATION OF ROLES
+# [x] ROLE ASSIGNMENT
+# [x] ROLE VERIFICATION
+
+# DB REPRESENTATION OF ROLES
+# 80 40 20 10 8 4 2 1
+#  0  0  0  0 0 0 0 0
+class Permission:
+    FOLLOW = 0x01
+    COMMENT = 0x02
+    WRITE_ARTICLES = 0x04
+    MODERATE_COMMENTS = 0x08
+    ADMINISTER = 0x80
 
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
+    # store permissions in the db table 
+    default = db.Column(db.Boolean, default=False, index=True)
+    permissions = db.Column(db.Integer)
     users = db.relationship('User', backref='role', lazy='dynamic')
+
+    @staticmethod
+    def insert_roles():
+        # define roles as combinations of permissions
+        roles = {
+                'User': (Permission.FOLLOW |
+                         Permission.COMMENT |
+                         Permission.WRITE_ARTICLES, True), 
+                'Moderator': (Permission.FOLLOW |
+                              Permission.COMMENT |
+                              Permission.WRITE_ARTICLES |
+                              Permission.MODERATE_COMMENTS, False), 
+                'Administrator': (0xff, False)
+        }
+        # insert roles in the db schema 
+        for r in roles:
+            role = Role.query.filter_by(name=r).first() 
+            if role is None:
+                role = Role(name=r)
+            role.permissions = roles[r][0]
+            role.default = roles[r][1]
+            db.session.add(role)
+        db.session.commit()
 
     def __repr__(self):
         return '<Role %r>' % self.name
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
     username = db.Column(db.String(64), unique=True, index=True)
@@ -24,7 +62,16 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
 
-    # password hashing 
+    # ROLE ASSIGNMENT
+    def __init__(self, **kwargs):
+        super(User, self).__init__(**kwargs)
+        if self.role is None:
+            # admin
+            if self.email == current_app.config['KLAX_ADMIN']:
+                self.role = Role.query.filter_by(permissions=0xff).first()
+            # default
+            if self.role is None:
+                self.role = Role.query.filter_by(default=True).first()
 
     @property
     def password(self):
@@ -36,8 +83,6 @@ class User(UserMixin, db.Model):
     
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
-
-    # account confirmation
 
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
@@ -55,8 +100,6 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
-    # reset password
-
     def generate_reset_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({'reset': self.id})
@@ -73,20 +116,16 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
-    # change email address
-
     def generate_email_change_token(self, new_email, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({ 'change_email': self.id, 'new_email': new_email})
 
     def change_email(self, token):
         s = Serializer(current_app.config['SECRET_KEY'])
-        # decode the signature
         try:
             data = s.loads(token)
         except:
             return False
-        # id of whoever wants to change the email address 
         if data.get('change_email') != self.id:
             return False
         new_email = data.get('new_email')
@@ -94,14 +133,33 @@ class User(UserMixin, db.Model):
             return False
         if self.query.filter_by(email=new_email).first() is not None:
             return False
-        # set the email to new address and write to db
         self.email = new_email
         db.session.add(self)
         return True
 
+    # ROLE VERIFICATION
+    # check if registered user supplied permission against stored permissions
+    def can(self, permissions):
+        return self.role is not None and \
+        (self.role.permissions & permissions) == permissions
+
+    # check if registered user has admin permissions
+    def is_administrator(self):
+        return self.can(Permission.ADMINISTER)
 
     def __repr__(self):
         return '<User %r>' % self.username
+
+class AnonymousUser(AnonymousUserMixin):
+    # check if anon user supplied permission against stored permissions
+    def can(self, permissions):
+        return False
+
+    # check if anon user has admin permissions
+    def is_administrator(self):
+        return False
+
+login_manager.anonymous_user = AnonymousUser
 
 @login_manager.user_loader
 def load_user(user_id):
