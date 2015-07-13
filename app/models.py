@@ -58,8 +58,9 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
-    # cache avatar MD5 hash
     avatar_hash = db.Column(db.String(32))
+    # establish collection of Post objects on a User object
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -69,7 +70,6 @@ class User(UserMixin, db.Model):
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
         if self.email is not None and self.avatar_hash is None:
-            # generate the hash and cache it 
             self.avatar_hash = hashlib.md5(
                     self.email.encode('utf-8')).hexdigest()
 
@@ -135,7 +135,6 @@ class User(UserMixin, db.Model):
         if self.query.filter_by(email=new_email).first() is not None:
             return False
         self.email = new_email
-        # generate and cache a hash for the new email
         self.avatar_hash = hashlib.md5(
                 self.email.encode('utf-8')).hexdigest()
         db.session.add(self)
@@ -157,7 +156,6 @@ class User(UserMixin, db.Model):
             url = 'https://secure.gravatar.com/avatar'
         else:
             url = 'http://www.gravatar.com/avatar'
-        # check cached hash first before generating a new one
         hash = self.avatar_hash or hashlib.md5(
                 self.email.encode('utf-8')).hexdigest()
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
@@ -181,4 +179,14 @@ login_manager.anonymous_user = AnonymousUser
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    # table-table relationship
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    # author = implicit obj-obj relationship via backref
+
 
