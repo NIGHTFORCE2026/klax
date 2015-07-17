@@ -220,6 +220,19 @@ class Post(db.Model):
 
     @staticmethod
     def generate_fake(count=100):
-        pass
+        from random import seed, randint
+        import forgery_py
 
-
+        seed()
+        user_count = User.query.count()
+        for i in range(count):
+            # create a random user instance from the db
+            u = User.query.offset(randint(0, user_count - 1)).first()
+            # create a post object
+            p = Post(body = forgery_py.lorem_ipsum.sentences(randint(1, 5)),
+                     timestamp = forgery_py.date.date(True),
+                     # assign it to the user object retrieved from db
+                     author = u)
+            # write the post to db
+            db.session.add(p)
+            db.session.commit()
