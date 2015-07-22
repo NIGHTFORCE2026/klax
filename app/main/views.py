@@ -17,14 +17,10 @@ def index():
                     author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-    # set the page by value in query string or default to page 1
     page = request.args.get('page', 1, type=int)
-    # x.paginate() query executor renders n items per_page on a page
-    # returns obj Pagination 
     pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
             page, per_page=current_app.config['KLAX_POSTS_PER_PAGE'], 
             error_out=False)
-    # retrieve items from obj pagination 
     posts = pagination.items
     return render_template('index.html', form=form, posts=posts,
             pagination=pagination)
