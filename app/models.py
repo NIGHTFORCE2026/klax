@@ -4,6 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from flask import current_app, request
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+
+# server-side markdown-to-HTML generation and HTML sanitization
+from markdown import markdown
+import bleach
+
 from . import db, login_manager
 
 class Permission:
@@ -70,7 +75,6 @@ class User(UserMixin, db.Model):
 
         seed()
         for i in range(count):
-            # create a user object by mapping instance attributes to forgery
             u = User(email = forgery_py.internet.email_address(),
                      username = forgery_py.internet.user_name(True),
                      password = forgery_py.lorem_ipsum.word(),
@@ -79,13 +83,9 @@ class User(UserMixin, db.Model):
                      location = forgery_py.address.city(),
                      about_me = forgery_py.lorem_ipsum.sentence(),
                      member_since = forgery_py.date.date(True))
-            # commit the object to the db; since generated randomly, there is
-            # a risk of duplicates
             db.session.add(u)
             try:
                 db.session.commit()
-            # if a duplicate is found, raise an error and roll back the session 
-            # before continuing 
             except IntegrityError:
                 db.session.rollback()
 
@@ -213,8 +213,9 @@ class Post(db.Model):
     __tablename__ = 'posts'
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
+    # cache server-side sanitized markdown to HTML
+    body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    # table-table relationship
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     # author = implicit obj-obj relationship via backref
 
@@ -236,3 +237,22 @@ class Post(db.Model):
             # write the post to db
             db.session.add(p)
             db.session.commit()
+
+    # convert stored markdown to HTML
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        """ header params match db.event.listen params for ORM events in API
+            http://docs.sqlalchemy.org/en/rel_1_0/orm/events.html
+        """
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p']
+        # markdown() converts markdown to HTML
+        # bleach.clean() sanitizes HTML
+        # bleach.linkify() converts plaintext URLs to <a> links
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'), 
+            tags=allowed_tags, strip=True))
+
+# ORM attribute listener on Post.body for 'set' events, runs on_changed_body
+db.event.listen(Post.body, 'set', Post.on_changed_body)
