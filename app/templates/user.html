@@ -37,10 +37,10 @@
         {% if current_user.can(Permission.FOLLOW) and user != current_user %}
             <!-- follow button -->
             {% if not current_user.is_following(user) %}
-                <a href="#">Follow</a>
+            <a href="{{ url_for('.follow', username=user.username) }}" class="btn btn-primary">Follow</a>
             {% else %}
             <!-- unfollow button -->
-                <a href="#">Unfollow</a>
+            <a href="{{ url_for('.unfollow', username=user.username) }}" class="btn btn-default">Unfollow</a>
             {% endif %}
 
         {% endif %}
@@ -49,7 +49,9 @@
         <!-- show count of people following the user -->
         <a href="#">Following: <span class="badge">{{ user.followed.count() }}</span></a>
         <!-- show if user is following you -->
-        follows you
+        {% if current_user.is_authenticated() and user != current_user and user.is_following(current_user) %}
+        <span class="label label-default">Follows you</span>
+        {% endif %}
         </p>
     
     </div>
