@@ -32,6 +32,25 @@
             <a class="btn btn-danger" href="{{ url_for('.edit_profile_admin', id=user.id) }}">Edit Profile [Admin]</a>
             {% endif %}
         </p>
+        <p>
+        <!-- if the user isn't you, show a follow / unfollow button -->
+        {% if current_user.can(Permission.FOLLOW) and user != current_user %}
+            <!-- follow button -->
+            {% if not current_user.is_following(user) %}
+                <a href="#">Follow</a>
+            {% else %}
+            <!-- unfollow button -->
+                <a href="#">Unfollow</a>
+            {% endif %}
+
+        {% endif %}
+        <!-- show count of the user's followers -->
+        <a href="#">Followers: <span class="badge">{{ user.followers.count() }}</span></a>
+        <!-- show count of people following the user -->
+        <a href="#">Following: <span class="badge">{{ user.followed.count() }}</span></a>
+        <!-- show if user is following you -->
+        follows you
+        </p>
     
     </div>
 </div>

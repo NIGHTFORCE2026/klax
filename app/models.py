@@ -215,16 +215,16 @@ class User(UserMixin, db.Model):
     def follow(self, user):
         if not self.is_following(user):
             # create a value for the db via obj relation
-            f = Follow(followed=user)
+            f = Follow(follower=self, followed=user)
             # add it to the list of objects returned in the relation
-            self.followed.append(f)
+            db.session.add(f)
 
     def unfollow(self, user):
         # read a value from the db via query, return a query object
         f = self.followed.filter_by(followed_id=user.id).first()
         if f:
             # remove it from the list of objects returned in the obj relation
-            self.followed.remove(f)
+            db.session.delete(f)
 
     def is_following(self, user):
         # read a value from the db via query, return True 
