@@ -17,6 +17,7 @@ class Config:
     KLAX_MAIL_SENDER = 'KLAX Admin <klax@example.com>'
     KLAX_ADMIN = os.environ.get('KLAX_ADMIN')
     KLAX_POSTS_PER_PAGE = 20
+    KLAX_FOLLOWERS_PER_PAGE = 50
 
     # configuration-specific initialization method
     @staticmethod

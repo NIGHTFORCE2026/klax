@@ -31,15 +31,15 @@ class Role(db.Model):
         roles = {
                 'User': (Permission.FOLLOW |
                          Permission.COMMENT |
-                         Permission.WRITE_ARTICLES, True), 
+                         Permission.WRITE_ARTICLES, True),
                 'Moderator': (Permission.FOLLOW |
                               Permission.COMMENT |
                               Permission.WRITE_ARTICLES |
-                              Permission.MODERATE_COMMENTS, False), 
+                              Permission.MODERATE_COMMENTS, False),
                 'Administrator': (0xff, False)
         }
         for r in roles:
-            role = Role.query.filter_by(name=r).first() 
+            role = Role.query.filter_by(name=r).first()
             if role is None:
                 role = Role(name=r)
             role.permissions = roles[r][0]
@@ -51,13 +51,13 @@ class Role(db.Model):
         return '<Role %r>' % self.name
 
 class Follow(db.Model):
-    # define two many-to-one relations via foreign key
     __tablename__ = 'follows'
     follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
                             primary_key=True)
     followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
                             primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -74,8 +74,6 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
     posts = db.relationship('Post', backref='author', lazy='dynamic')
-    # define two one-to-many relations via db.relationship()
-    # return a list of objects
     followed = db.relationship('Follow',
                                 foreign_keys=[Follow.follower_id],
                                 backref=db.backref('follower', lazy='joined'),
@@ -136,7 +134,7 @@ class User(UserMixin, db.Model):
 
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
-        return s.dumps({ 'confirm': self.id })
+        return s.dumps({'confirm': self.id})
 
     def confirm(self, token):
         s = Serializer(current_app.config['SECRET_KEY'])
@@ -214,25 +212,20 @@ class User(UserMixin, db.Model):
 
     def follow(self, user):
         if not self.is_following(user):
-            # create a value for the db via obj relation
             f = Follow(follower=self, followed=user)
-            # add it to the list of objects returned in the relation
             db.session.add(f)
 
     def unfollow(self, user):
-        # read a value from the db via query, return a query object
         f = self.followed.filter_by(followed_id=user.id).first()
         if f:
-            # remove it from the list of objects returned in the obj relation
             db.session.delete(f)
 
     def is_following(self, user):
-        # read a value from the db via query, return True 
         return self.followed.filter_by(
                 followed_id=user.id).first() is not None
 
     def is_followed_by(self, user):
-        self.followers.filter_by(
+        return self.followers.filter_by(
                 follower_id=user.id).first() is not None
 
     def __repr__(self):
