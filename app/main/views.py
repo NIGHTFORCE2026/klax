@@ -103,7 +103,18 @@ def post(id):
         db.session.add(comment)
         flash('Your comment has been published.')
         return redirect(url_for('.post', id=post.id))
-    return render_template('post.html', posts=[post], form=form) 
+    page = request.args.get('page', 1, type=int)
+    # last page in the pagination object
+    if page == -1:
+        # calculate page number from number of comments and page size
+        page = (post.comments.count() - 1) / \
+            current_app.config['KLAX_COMMENTS_PER_PAGE'] + 1
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(
+            page, per_page=current_app.config['KLAX_COMMENTS_PER_PAGE'], 
+            error_out=False)
+    comments = pagination.items
+    return render_template('post.html', posts=[post], form=form,
+                            comments=comments, pagination=pagination) 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required 
