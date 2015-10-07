@@ -4,7 +4,7 @@ from flask.ext.login import login_required, current_user
 from . import main
 from .forms import EditProfileForm, EditProfileAdminForm, PostForm, CommentForm
 from .. import db
-from ..models import Role, User, Permission, Post
+from ..models import Role, User, Permission, Post, Comment
 from ..decorators import admin_required, permission_required
 
 
@@ -96,6 +96,13 @@ def edit_profile_admin(id):
 def post(id):
     post = Post.query.get_or_404(id)
     form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(body=form.body.data,
+                          post=post,
+                          author=current_user._get_current_object())
+        db.session.add(comment)
+        flash('Your comment has been published.')
+        return redirect(url_for('.post', id=post.id))
     return render_template('post.html', posts=[post], form=form) 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
