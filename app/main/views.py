@@ -220,5 +220,23 @@ def moderate():
             page, per_page=current_app.config['KLAX_COMMENTS_PER_PAGE'], 
             error_out=False)
     comments = pagination.items
-    return render_template('moderate.html', pagination=pagination, comments=comments)
+    return render_template('moderate.html', page=page, pagination=pagination, comments=comments)
 
+
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+@main.route('/moderate/disable/<int:id>')
+def moderate_disable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = True
+    db.session.add(comment)
+    return redirect(url_for('.moderate'))
+
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+@main.route('/moderate/enable/<int:id>')
+def moderate_enable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = False
+    db.session.add(comment)
+    return redirect(url_for('.moderate'))
