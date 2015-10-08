@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Klax - Comment Moderation{% endblock %}
+
+{% block page_content %}
+<h1 id="comments">Comment Moderation</h1>
+{% include '_posts.html' %}
+{% if current_user.can(Permission.MODERATE_COMMENTS)%}
+{% include '_comments.html' %}
+
+{% if pagination %}
+<div class="pagination">
+    {{ macros.pagination_widget(pagination, '.post', fragment='#comments', id=posts[0].id) }}
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

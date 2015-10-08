@@ -196,8 +196,6 @@ def followed_by(username):
                            endpoint='.followed_by', pagination=pagination,
                            follows=follows)
 
-
-# tab the pagination to toggle all and followed posts
 @main.route('/all')
 def show_all():
     # make a response object and set a cookie to '' 
@@ -211,3 +209,10 @@ def show_followed():
     resp = make_response(redirect(url_for('.index')))
     resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
     return resp
+
+
+@main.route('/moderate')
+def moderate():
+    comments = Comment.query.order_by(Comment.timestamp.desc()).all()
+    return render_template('moderate.html', comments=comments)
+
