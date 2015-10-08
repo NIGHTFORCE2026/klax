@@ -211,8 +211,14 @@ def show_followed():
     return resp
 
 
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
 @main.route('/moderate')
 def moderate():
-    comments = Comment.query.order_by(Comment.timestamp.desc()).all()
-    return render_template('moderate.html', comments=comments)
+    page = request.args.get('page', 1, type=int)
+    pagination = Comment.query.order_by(Comment.timestamp.desc()).paginate(
+            page, per_page=current_app.config['KLAX_COMMENTS_PER_PAGE'], 
+            error_out=False)
+    comments = pagination.items
+    return render_template('moderate.html', pagination=pagination, comments=comments)
 
