@@ -1,4 +1,4 @@
-from flask import render_template
+from flask import request, jsonify, render_template
 from . import main
 
 # content negotiation b/w html and json
