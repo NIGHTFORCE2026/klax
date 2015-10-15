@@ -1,4 +1,4 @@
-from flask import g
+from flask import g, jsonify
 from flask.ext.httpauth import HTTPBasicAuth
 from ..models import User, AnonymousUser
 from .errors import unauthorized, forbidden
@@ -20,7 +20,7 @@ def verify_password(email_or_token, password):
         g.current_user = AnonymousUser()
         return True
     if password == '':
-        # blank password identify a token
+        # blank password identify a token, so verify it 
         g.current_user = User.verify_auth_token(email_or_token)
         g.token_used = True
         return g.current_user is not None
@@ -46,5 +46,14 @@ def before_request():
             not g.current_user.is_confirmed:
         return forbidden('Unconfirmed account')
 
-
+# before_request hooks apply to this route
+@api.route('/token')
+def get_token():
+    """ send authentication token to a client """
+    if g.current_user.is_anonymous() or g.token_used:
+    # token_used prevents clients with old tokens from
+    # requesting a new one
+        return unauthorized('Invalid credentials')
+    return jsonify({'token': g.current_user.generate_auth_token(
+        expiration=3600), 'expiration': 3600})
 
