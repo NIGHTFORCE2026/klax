@@ -1,7 +1,7 @@
 from flask import g
-from ..models import User, AnonymousUser
 from flask.ext.httpauth import HTTPBasicAuth
-from .errors import unauthorized
+from ..models import User, AnonymousUser
+from .errors import unauthorized, forbidden
 # link this to the api blueprint
 from . import api
 
@@ -14,7 +14,7 @@ def verify_password(email, password):
     """ verify a user's password, 
     assign a user to global context to be accessed by the rest of the system,
     return True on success """
-    if email = '':
+    if email == '':
         # anons are identified by blank email
         g.current_user = AnonymousUser()
         return True
@@ -25,7 +25,19 @@ def verify_password(email, password):
     g.current_user = user
     return user.verify_password(password)
 
-@auth.errorhandler
+@auth.error_handler
 def auth_error():
     """ callback using error handler in errors.py """
     return unauthorized('Invalid credentials')
+
+@api.before_request
+@auth.login_required
+def before_request():
+    """ all routes in the api blueprint need to be protected, so set the
+    login_required decorator on a request hook """
+    if not g.current_user.is_anonymous and \
+            not g.current_user.is_confirmed:
+        return forbidden('Unconfirmed account')
+
+
+
