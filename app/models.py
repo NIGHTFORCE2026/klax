@@ -260,6 +260,19 @@ class User(UserMixin, db.Model):
             return None
         return User.query.get(data['id'])
 
+    def to_json(self):
+        """ convert user object to serializable dictionary """
+        json_user = {
+            'url': url_for('api.get_post', id=self.id, _external=True), 
+            'username': self.username,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+            'posts': url_for('api.get_user_posts', id=self.id, _external=True),
+            'followed_posts': url_for('api.get_user_followed_posts',
+                                      id=self.id, _external=True),
+            'post_count': self.posts.count()
+        }
+        return json_user
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -320,6 +333,20 @@ class Post(db.Model):
             markdown(value, output_format='html'), 
             tags=allowed_tags, strip=True))
 
+    def to_json(self):
+        """ convert post object to serializable dictionary """
+        json_post = {
+            'url': url_for('api.get_post', id=self.id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.id, _external=True),
+            'comments': url_for('api.get_post_comments', id=self.id, 
+                                _external=True ),
+            'comment_count': self.comments.count()
+        }
+        return json_post
+
 # ORM attribute listener on Post.body for 'set' events, runs on_changed_body
 db.event.listen(Post.body, 'set', Post.on_changed_body)
 
@@ -342,5 +369,17 @@ class Comment(db.Model):
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
             tags=allowed_tags, strip=True))
+
+    def to_json(self):
+        json_comment = {
+            'url': url_for('api.get_comment', id=self.id, _external=True),
+            'post': url_for('api.get_post', id=self.post_id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.author_id,
+                              _external=True),
+        }
+        return json_comment
 
 db.event.listen(Comment.body, 'set', Comment.on_changed_body)
