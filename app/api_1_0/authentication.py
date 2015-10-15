@@ -1,14 +1,14 @@
 from flask import g
 from ..models import User, AnonymousUser
 from flask.ext.httpauth import HTTPBasicAuth
+from .errors import unauthorized
 # link this to the api blueprint
 from . import api
 
-# initialize in the api blueprint package, not app package, since it will only 
-# be used here
+# initialize the extension in the api blueprint package, not app package
 auth = HTTPBasicAuth()
 
-# function must be defined for flask-httpauth's decorator interface
+# decorated callback functions are the interface to flask-httpauth 
 @auth.verify_password
 def verify_password(email, password):
     """ verify a user's password, 
@@ -25,3 +25,7 @@ def verify_password(email, password):
     g.current_user = user
     return user.verify_password(password)
 
+@auth.errorhandler
+def auth_error():
+    """ callback using error handler in errors.py """
+    return unauthorized('Invalid credentials')
