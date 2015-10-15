@@ -10,19 +10,26 @@ auth = HTTPBasicAuth()
 
 # decorated callback functions are the interface to flask-httpauth 
 @auth.verify_password
-def verify_password(email, password):
+def verify_password(email_or_token, password):
     """ verify a user's password, 
     assign a user to global context to be accessed by the rest of the system,
+    set token_used so view functions can distinguish bw authentication types,
     return True on success """
-    if email == '':
-        # anons are identified by blank email
+    if email_or_token == '':
+        # blank email identify anons 
         g.current_user = AnonymousUser()
         return True
+    if password == '':
+        # blank password identify a token
+        g.current_user = User.verify_auth_token(email_or_token)
+        g.token_used = True
+        return g.current_user is not None
     user = User.query.filter_by(email=email).first()
     if not user:
         # bogus users aren't allowed
         return False
     g.current_user = user
+    g.token_used = False
     return user.verify_password(password)
 
 @auth.error_handler

@@ -252,7 +252,7 @@ class User(UserMixin, db.Model):
 
     # static bc user is known only after token is decoded
     @staticmethod
-    def verify_auth_token(self, token):
+    def verify_auth_token(token):
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
