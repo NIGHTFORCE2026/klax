@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from flask import current_app, request
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from app.exceptions import ValidationError
 
 # server-side markdown-to-HTML generation and HTML sanitization
 from markdown import markdown
@@ -346,6 +347,18 @@ class Post(db.Model):
             'comment_count': self.comments.count()
         }
         return json_post
+
+    def from_json(json_post):
+        """ convert serializable dictionary to a Post object """
+        # get the data from the dictionary
+        body = json_post.get('body')
+        if body is None or body == '':
+            # let the caller handle the error
+            raise ValidationError('post does not have a body')
+        # assign it to an attribute in the obj constructor
+        return Post(body=body)
+
+
 
 # ORM attribute listener on Post.body for 'set' events, runs on_changed_body
 db.event.listen(Post.body, 'set', Post.on_changed_body)
