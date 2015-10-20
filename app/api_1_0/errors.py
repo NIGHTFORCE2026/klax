@@ -1,4 +1,5 @@
 from flask import jsonify
+from app.exceptions import ValidationError
 from . import api
 
 # use these error handlers in the api's view functions
@@ -16,3 +17,11 @@ def forbidden(message):
     response = jsonify({'error': 'forbidden', 'message': message})
     response.status_code = 403
     return response
+
+# decorated callbacks interface with Flask-HTTPAuth
+# another method of data transport 
+@api.errorhandler(ValidationError)
+def validation_error(e):
+    return bad_request(e.args[0])
+
+
