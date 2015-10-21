@@ -24,7 +24,7 @@ def verify_password(email_or_token, password):
         g.current_user = User.verify_auth_token(email_or_token)
         g.token_used = True
         return g.current_user is not None
-    user = User.query.filter_by(email=email).first()
+    user = User.query.filter_by(email=email_or_token).first()
     if not user:
         # bogus users aren't allowed
         return False
@@ -43,7 +43,7 @@ def before_request():
     """ all routes in the api blueprint need to be protected, so set the
     login_required decorator on a request hook """
     if not g.current_user.is_anonymous and \
-            not g.current_user.is_confirmed:
+            not g.current_user.confirmed:
         return forbidden('Unconfirmed account')
 
 # before_request hooks apply to this route
