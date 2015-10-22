@@ -341,7 +341,7 @@ class Post(db.Model):
             'body': self.body,
             'body_html': self.body_html,
             'timestamp': self.timestamp,
-            'author': 'an author', #url_for('api.get_user', id=self.id, _external=True),
+            'author': url_for('api.get_user', id=self.author_id, _external=True),
             'comments': 'some comments', # url_for('api.get_post_comments', id=self.id, 
                                 #_external=True ),
             'comment_count': self.comments.count()
