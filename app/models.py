@@ -268,9 +268,8 @@ class User(UserMixin, db.Model):
             'username': self.username,
             'member_since': self.member_since,
             'last_seen': self.last_seen,
-            'posts': 'a post', #url_for('api.get_user_posts', id=self.id, _external=True),
-            'followed_posts': 'a followed post', #url_for('api.get_user_followed_posts',
-                                      # id=self.id, _external=True),
+            'posts': url_for('api.get_user_posts', id=self.id, _external=True),
+            'followed_posts': url_for('api.get_user_followed_posts', id=self.id, _external=True),
             'post_count': self.posts.count()
         }
         return json_user
@@ -342,8 +341,8 @@ class Post(db.Model):
             'body_html': self.body_html,
             'timestamp': self.timestamp,
             'author': url_for('api.get_user', id=self.author_id, _external=True),
-            'comments': 'some comments', # url_for('api.get_post_comments', id=self.id, 
-                                #_external=True ),
+            'comments': url_for('api.get_post_comments', id=self.id,
+                                _external=True ),
             'comment_count': self.comments.count()
         }
         return json_post
@@ -391,8 +390,8 @@ class Comment(db.Model):
             'body': self.body,
             'body_html': self.body_html,
             'timestamp': self.timestamp,
-            'author': 'an author '# url_for('api.get_user', id=self.author_id,
-                              #_external=True),
+            'author': url_for('api.get_user', id=self.author_id,
+                                _external=True),
         }
         return json_comment
 
